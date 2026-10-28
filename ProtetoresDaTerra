@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defensores da Terra - Patrulha Matemática</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #050515;
+            color: #ffffff;
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 900px;
+            max-height: 1000px;
+            background: linear-gradient(to bottom, #02010a 0%, #080721 60%, #111438 100%);
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            border: 2px solid #1f295d;
+        }
+
+        /* Fundo com Estrelas */
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Terra na Base */
+        #earth-container {
+            position: absolute;
+            bottom: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 250px;
+            background: radial-gradient(circle at 50% 0%, #4b9cd3 0%, #1d4e89 40%, #0d2137 70%, transparent 100%);
+            border-radius: 50% 50% 0 0;
+            box-shadow: 0 -20px 50px rgba(75, 156, 211, 0.4);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Canhão Laser na Terra */
+        #laser-cannon {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            z-index: 3;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Painel HUD Superior (Pontos e Vidas) */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .hud-card {
+            background: rgba(16, 23, 62, 0.85);
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .hud-label {
+            font-size: 14px;
+            color: #93c5fd;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .hud-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .heart {
+            color: #ef4444;
+            font-size: 24px;
+            filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8));
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .heart.lost {
+            opacity: 0.2;
+            transform: scale(0.8);
+            filter: none;
+        }
+
+        /* Meteoros */
+        .meteor {
+            position: absolute;
+            width: 85px;
+            height: 85px;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform, top;
+        }
+
+        .meteor-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 12px rgba(255, 100, 0, 0.8));
+        }
+
+        .meteor-number {
+            position: absolute;
+            font-size: 38px; /* Aumentado */
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px #000, 0 0 5px #000, 2px 2px 0 #000;
+            z-index: 5;
+        }
+
+        /* Painel de Alternativas / Botões (Posicionado Mais Alto) */
+        #controls-panel {
+            position: absolute;
+            bottom: 120px; /* Elevar posições */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 550px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .btn-option {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #38bdf8;
+            border-radius: 20px;
+            color: #ffffff;
+            font-size: 32px; /* Aumentado */
+            font-weight: 700;
+            padding: 16px 10px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #0284c7, 0 10px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Fredoka', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .btn-option:hover {
+            transform: translateY(-2px);
+            border-color: #7dd3fc;
+            box-shadow: 0 8px 0 #0284c7, 0 12px 22px rgba(56, 189, 248, 0.4);
+        }
+
+        .btn-option:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0284c7, 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Feixe de Raio Laser */
+        .laser-beam {
+            position: absolute;
+            width: 8px;
+            background: linear-gradient(to top, #38bdf8, #ffffff, #818cf8);
+            box-shadow: 0 0 15px #38bdf8, 0 0 30px #818cf8;
+            border-radius: 4px;
+            z-index: 3;
+            pointer-events: none;
+            transform-origin: bottom center;
+        }
+
+        /* Partículas de Explosão */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 6;
+            animation: explode 0.6s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        }
+
+        /* Telas de Overlay (Início, Diálogo, Fim) */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 20, 0.92);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .game-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .game-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+
+        /* Estilo do Mascote (Astronauta Leo) */
+        .mascot-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid #38bdf8;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 500px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .mascot-avatar {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .dialog-bubble {
+            color: #f8fafc;
+            font-size: 16px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .dialog-bubble strong {
+            color: #38bdf8;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            padding: 16px 45px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #166534, 0 10px 25px rgba(34, 197, 94, 0.4);
+            transition: all 0.2s ease;
+            font-family: 'Fredoka', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 0 #166534, 0 15px 30px rgba(34, 197, 94, 0.6);
+        }
+
+        .btn-primary:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 2px 0 #166534;
+        }
+
+        /* Tela Final */
+        .score-board {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid #f59e0b;
+            border-radius: 20px;
+            padding: 25px 40px;
+            margin: 20px 0 30px 0;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .score-title {
+            font-size: 18px;
+            color: #fbbf24;
+            margin-bottom: 5px;
+        }
+
+        .score-number {
+            font-size: 64px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Efeito de Flash Dano Tela */
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.3);
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Fundo de estrelas gerado dinamicamente -->
+        <div id="stars-layer"></div>
+
+        <!-- Efeito visual de dano na tela -->
+        <div id="damage-overlay"></div>
+
+        <!-- HUD (Pontos e Vidas) -->
+        <div id="hud">
+            <div class="hud-card">
+                <span class="hud-label">Acertos:</span>
+                <span id="score-display" class="hud-value">0</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">Vidas:</span>
+                <div id="lives-container" style="display: flex; gap: 5px;">
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canhão de Laser -->
+        <div id="laser-cannon">
+            <svg viewBox="0 0 60 60" width="100%" height="100%">
+                <path d="M 20 50 L 30 10 L 40 50 Z" fill="#38bdf8" />
+                <rect x="25" y="45" width="10" height="15" fill="#0284c7" />
+                <circle cx="30" cy="15" r="5" fill="#60a5fa" />
+            </svg>
+        </div>
+
+        <!-- Terra na base -->
+        <div id="earth-container"></div>
+
+        <!-- Painel de Alternativas (Posicionado Acima) -->
+        <div id="controls-panel">
+            <button class="btn-option" onclick="checkAnswer(0)">3 + 4</button>
+            <button class="btn-option" onclick="checkAnswer(1)">2 + 5</button>
+            <button class="btn-option" onclick="checkAnswer(2)">1 + 8</button>
+        </div>
+
+        <!-- TELA 1: Início -->
+        <div id="start-screen" class="overlay">
+            <h1 class="game-title">Defensores da Terra</h1>
+            <p class="game-subtitle">Patrulha dos Fatos Numéricos de Soma</p>
+            
+            <div style="width: 120px; height: 120px; margin-bottom: 25px;">
+                <svg viewBox="0 0 100 100" width="100%" height="100%">
+                    <circle cx="50" cy="50" r="40" fill="#38bdf8" opacity="0.2"/>
+                    <circle cx="50" cy="45" r="25" fill="#e2e8f0"/>
+                    <path d="M 30 45 Q 50 25 70 45 A 25 25 0 0 1 30 45" fill="#0284c7"/>
+                    <rect x="35" y="40" width="30" height="12" rx="6" fill="#0f172a"/>
+                    <circle cx="43" cy="46" r="2" fill="#38bdf8"/>
+                    <path d="M 35 70 Q 50 85 65 70 Z" fill="#f8fafc"/>
+                </svg>
+            </div>
+
+            <button class="btn-primary" onclick="showIntroScreen()">Jogar</button>
+        </div>
+
+        <!-- TELA 2: Diálogo com Mascote (Explicação) -->
+        <div id="intro-screen" class="overlay hidden">
+            <div class="mascot-container">
+                <!-- Mascot Avatar SVG -->
+                <svg class="mascot-avatar" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="#38bdf8" opacity="0.15"/>
+                    <circle cx="50" cy="45" r="28" fill="#e2e8f0"/>
+                    <path d="M 28 45 Q 50 22 72 45 A 28 28 0 0 1 28 45" fill="#0284c7"/>
+                    <rect x="34" y="38" width="32" height="14" rx="7" fill="#0f172a"/>
+                    <circle cx="42" cy="45" r="2.5" fill="#38bdf8"/>
+                    <circle cx="58" cy="45" r="2.5" fill="#38bdf8"/>
+                    <path d="M 32 72 Q 50 88 68 72 Z" fill="#f8fafc"/>
+                    <path d="M 40 80 Q 50 85 60 80" stroke="#cbd5e1" stroke-width="2" fill="none"/>
+                </svg>
+                <div class="dialog-bubble">
+                    <strong>Olá, Recruta! Eu sou o Astronauta Leo.</strong><br>
+                    A Terra está sob uma chuva de meteoros numéricos! <br><br>
+                    Para destruí-los com nosso raio laser, resolva a soma certa correspondente ao número do meteoro antes que ele caia!
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="startGame()">Salvar a Terra!</button>
+        </div>
+
+        <!-- TELA 3: Game Over -->
+        <div id="game-over-screen" class="overlay hidden">
+            <h1 class="game-title" style="color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.6);">Fim de Jogo!</h1>
+            <p class="game-subtitle">A Terra precisa da sua ajuda para tentar novamente!</p>
+
+            <div class="score-board">
+                <div class="score-title">Total de Meteoros Destruídos</div>
+                <div id="final-score" class="score-number">0</div>
+            </div>
+
+            <button class="btn-primary" onclick="restartGame()">Tentar Novamente</button>
+        </div>
+
+    </div>
+
+    <script>
+        /* Global Web Audio API Context para Efeitos Sonoros */
+        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (AudioCtx.state === 'suspended') {
+                AudioCtx.resume();
+            }
+            const osc = AudioCtx.createOscillator();
+            const gain = AudioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(AudioCtx.destination);
+
+            const now = AudioCtx.currentTime;
+
+            if (type === 'laser') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'explosion') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(110, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'earth_hit') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(80, now);
+                osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        /* Variáveis Globais do Jogo */
+        let score = 0;
+        let lives = 3;
+        let activeMeteors = [];
+        let gameInterval = null;
+        let isGameRunning = false;
+        let currentOptions = [];
+        let nextMeteorId = 0;
+        let lastMeteorSpawnTime = 0;
+
+        // Configurações e limites de tempo e velocidade
+        const BASE_FALL_DURATION = 9.0; // Queda inicial de 9 segundos
+        const MIN_FALL_DURATION = 5.0;  // Velocidade máxima (5 segundos de queda)
+        const SPEED_STEP = 0.25;         // Aceleração a cada 3 acertos
+        const MULTI_METEOR_THRESHOLD = 10; // Meteoros simultâneos após 10 acertos
+        const MULTI_SPAWN_INTERVAL = 3000; // Intervalo de 3s entre quedas simultâneas
+
+        /* Inicialização de Estrelas no Fundo */
+        function createStars() {
+            const starsContainer = document.getElementById('stars-layer');
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                starsContainer.appendChild(star);
+            }
+        }
+
+        createStars();
+
+        /* Telas de Navegação */
+        function showIntroScreen() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden');
+        }
+
+        function startGame() {
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            
+            // Reset de Estado
+            score = 0;
+            lives = 3;
+            activeMeteors = [];
+            isGameRunning = true;
+            
+            updateHUD();
+            clearAllMeteors();
+
+            // Loop principal do jogo
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 100);
+
+            // Primeiro meteoro
+            spawnMeteor();
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            clearInterval(gameInterval);
+            clearAllMeteors();
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        /* Atualizar Interface (HUD) */
+        function updateHUD() {
+            document.getElementById('score-display').innerText = score;
+            const hearts = document.querySelectorAll('.heart');
+            hearts.forEach((heart, index) => {
+                if (index < lives) {
+                    heart.classList.remove('lost');
+                } else {
+                    heart.classList.add('lost');
+                }
+            });
+        }
+
+        /* Cálculo da velocidade de queda baseada na pontuação */
+        function getCurrentFallDuration() {
+            const speedIncreases = Math.floor(score / 3);
+            const duration = BASE_FALL_DURATION - (speedIncreases * SPEED_STEP);
+            return Math.max(MIN_FALL_DURATION, duration);
+        }
+
+        /* Gerador de Fatos Numéricos de Soma (Resultado <= 10) */
+        function generateAdditionFact(targetResult = null) {
+            let num1, num2, result;
+            if (targetResult !== null) {
+                result = targetResult;
+                num1 = Math.floor(Math.random() * (result + 1));
+                num2 = result - num1;
+            } else {
+                result = Math.floor(Math.random() * 10) + 1; // 1 a 10
+                num1 = Math.floor(Math.random() * (result + 1));
+                num2 = result - num1;
+            }
+            return {
+                text: `${num1} + ${num2}`,
+                value: result
+            };
+        }
+
+        /* Criação e Animação do Meteoro */
+        function spawnMeteor() {
+            if (!isGameRunning) return;
+
+            const now = Date.now();
+            
+            // Controle para permitir simultâneos apenas com no mínimo 3s de intervalo
+            if (activeMeteors.length > 0 && (now - lastMeteorSpawnTime < MULTI_SPAWN_INTERVAL)) {
+                return;
+            }
+
+            // Apenas 1 meteoro de cada vez antes de 10 acertos
+            if (score < MULTI_METEOR_THRESHOLD && activeMeteors.length >= 1) {
+                return;
+            }
+
+            // Máximo de 2 simultâneos no modo avançado
+            if (activeMeteors.length >= 2) {
+                return;
+            }
+
+            lastMeteorSpawnTime = now;
+
+            const id = 'meteor-' + nextMeteorId++;
+            const numberValue = Math.floor(Math.random() * 10) + 1; // Número entre 1 e 10
+            
+            // Posição X aleatória (entre 10% e 80% da tela)
+            const posX = Math.floor(Math.random() * 70) + 10;
+            
+            const duration = getCurrentFallDuration();
+
+            const meteorEl = document.createElement('div');
+            meteorEl.className = 'meteor';
+            meteorEl.id = id;
+            meteorEl.style.left = `${posX}%`;
+            meteorEl.style.top = `-100px`;
+
+            meteorEl.innerHTML = `
+                <svg class="meteor-svg" viewBox="0 0 100 100">
+                    <defs>
+                        <radialGradient id="grad-${id}" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ffedd5"/>
+                            <stop offset="40%" stop-color="#f97316"/>
+                            <stop offset="80%" stop-color="#c2410c"/>
+                            <stop offset="100%" stop-color="#451a03"/>
+                        </radialGradient>
+                    </defs>
+                    <!-- Cauda de fogo -->
+                    <path d="M 30 20 Q 50 -30 70 20 Q 80 50 50 90 Q 20 50 30 20 Z" fill="#ef4444" opacity="0.6"/>
+                    <path d="M 35 25 Q 50 -10 65 25 Q 70 50 50 80 Q 30 50 35 25 Z" fill="#f97316"/>
+                    <!-- Corpo da Pedra -->
+                    <circle cx="50" cy="55" r="35" fill="url(#grad-${id})"/>
+                    <circle cx="38" cy="45" r="6" fill="#78350f" opacity="0.5"/>
+                    <circle cx="62" cy="65" r="8" fill="#78350f" opacity="0.5"/>
+                </svg>
+                <div class="meteor-number">${numberValue}</div>
+            `;
+
+            document.getElementById('game-container').appendChild(meteorEl);
+
+            const meteorObj = {
+                id: id,
+                element: meteorEl,
+                value: numberValue,
+                posY: -100,
+                posX: posX,
+                speed: (window.innerHeight + 100) / (duration * 10), // Pixels por tick de 100ms
+                startTime: Date.now(),
+                duration: duration * 1000
+            };
+
+            activeMeteors.push(meteorObj);
+            updateControlOptions();
+        }
+
+        /* Atualização das Opções dos Botões */
+        function updateControlOptions() {
+            if (activeMeteors.length === 0) return;
+
+            // Escolhe o meteoro mais próximo do chão como alvo principal
+            const targetMeteor = activeMeteors.reduce((prev, curr) => (prev.posY > curr.posY) ? prev : curr);
+            
+            const targetValue = targetMeteor.value;
+            const correctAnswer = generateAdditionFact(targetValue);
+
+            // Gerar 2 alternativas incorretas únicas
+            const options = [correctAnswer];
+            
+            while (options.length < 3) {
+                const wrongFact = generateAdditionFact();
+                if (wrongFact.value !== targetValue && !options.some(o => o.text === wrongFact.text)) {
+                    options.push(wrongFact);
+                }
+            }
+
+            // Embaralhar alternativas
+            options.sort(() => Math.random() - 0.5);
+            currentOptions = options;
+
+            // Atualizar botões na tela
+            const buttons = document.querySelectorAll('.btn-option');
+            buttons.forEach((btn, index) => {
+                btn.innerText = currentOptions[index].text;
+            });
+        }
+
+        /* Loop Principal do Jogo */
+        function gameLoop() {
+            if (!isGameRunning) return;
+
+            const containerHeight = window.innerHeight;
+            const earthImpactY = containerHeight - 120; // Ponto de colisão com a Terra
+
+            for (let i = activeMeteors.length - 1; i >= 0; i--) {
+                const m = activeMeteors[i];
+                
+                // Progresso baseado no tempo decorrido para suavidade total
+                const elapsed = Date.now() - m.startTime;
+                const progress = elapsed / m.duration;
+                m.posY = -100 + (progress * (earthImpactY + 100));
+
+                m.element.style.transform = `translateY(${m.posY + 100}px)`;
+
+                // Impacto com a Terra
+                if (m.posY >= earthImpactY) {
+                    triggerEarthImpact(m, i);
+                }
+            }
+
+            // Tenta gerar novos meteoros conforme as regras
+            spawnMeteor();
+        }
+
+        /* Ação ao Selecionar uma Resposta */
+        function checkAnswer(selectedIndex) {
+            if (!isGameRunning || activeMeteors.length === 0) return;
+
+            const selectedFact = currentOptions[selectedIndex];
+            
+            // Encontrar se existe algum meteoro com esse valor exato
+            const targetIndex = activeMeteors.findIndex(m => m.value === selectedFact.value);
+
+            if (targetIndex !== -1) {
+                // ACERTOU!
+                const meteor = activeMeteors[targetIndex];
+                fireLaser(meteor, () => {
+                    destroyMeteor(meteor.id);
+                    score++;
+                    updateHUD();
+                    
+                    // Se destruiu todos os meteoros, cria um novo imediatamente
+                    if (activeMeteors.length === 0) {
+                        spawnMeteor();
+                    } else {
+                        updateControlOptions();
+                    }
+                });
+            } else {
+                // ERROU!
+                playSound('wrong');
+                lives--;
+                updateHUD();
+                flashDamageScreen();
+
+                if (lives <= 0) {
+                    gameOver();
+                }
+            }
+        }
+
+        /* Animação do Disparo de Laser */
+        function fireLaser(targetMeteor, onHitCallback) {
+            playSound('laser');
+
+            const cannon = document.getElementById('laser-cannon');
+            const cannonRect = cannon.getBoundingClientRect();
+            const meteorRect = targetMeteor.element.getBoundingClientRect();
+
+            const startX = cannonRect.left + cannonRect.width / 2;
+            const startY = cannonRect.top;
+            const endX = meteorRect.left + meteorRect.width / 2;
+            const endY = meteorRect.top + meteorRect.height / 2;
+
+            // Rotacionar canhão em direção ao meteoro
+            const angle = Math.atan2(endX - startX, -(endY - startY)) * (180 / Math.PI);
+            cannon.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            // Criar raio laser
+            const laser = document.createElement('div');
+            laser.className = 'laser-beam';
+            
+            const distance = Math.hypot(endX - startX, endY - startY);
+            
+            laser.style.height = `${distance}px`;
+            laser.style.left = `${startX}px`;
+            laser.style.top = `${startY - distance}px`;
+            laser.style.transformOrigin = 'bottom center';
+            laser.style.transform = `rotate(${angle}deg)`;
+
+            document.getElementById('game-container').appendChild(laser);
+
+            // Remover laser e gerar explosão
+            setTimeout(() => {
+                laser.remove();
+                cannon.style.transform = `translateX(-50%) rotate(0deg)`;
+                createExplosion(endX, endY);
+                playSound('explosion');
+                if (onHitCallback) onHitCallback();
+            }, 120);
+        }
+
+        /* Efeito de Explosão */
+        function createExplosion(x, y) {
+            const container = document.getElementById('game-container');
+            const colors = ['#f97316', '#ef4444', '#fbbf24', '#ffffff'];
+
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 8 + 4;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 80 + 20;
+                const dx = Math.cos(angle) * speed;
+                const dy = Math.sin(angle) * speed;
+
+                particle.style.setProperty('--dx', `${dx}px`);
+                particle.style.setProperty('--dy', `${dy}px`);
+
+                container.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 600);
+            }
+        }
+
+        /* Efeito de Impacto na Terra */
+        function triggerEarthImpact(meteor, index) {
+            playSound('earth_hit');
+            createExplosion(
+                meteor.element.getBoundingClientRect().left + 40,
+                window.innerHeight - 100
+            );
+
+            meteor.element.remove();
+            activeMeteors.splice(index, 1);
+
+            lives--;
+            updateHUD();
+            flashDamageScreen();
+
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                if (activeMeteors.length === 0) {
+                    spawnMeteor();
+                } else {
+                    updateControlOptions();
+                }
+            }
+        }
+
+        /* Flash Vermelho na Tela ao Receber Dano */
+        function flashDamageScreen() {
+            const overlay = document.getElementById('damage-overlay');
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+            }, 200);
+        }
+
+        /* Limpeza de Meteoros da Tela */
+        function destroyMeteor(id) {
+            const index = activeMeteors.findIndex(m => m.id === id);
+            if (index !== -1) {
+                activeMeteors[index].element.remove();
+                activeMeteors.splice(index, 1);
+            }
+        }
+
+        function clearAllMeteors() {
+            activeMeteors.forEach(m => m.element.remove());
+            activeMeteors = [];
+        }
+    </script>
+</body>
+</html>
